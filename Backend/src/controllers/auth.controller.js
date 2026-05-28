@@ -56,17 +56,55 @@ export const verifyAccount = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
+  try {
+    const { email, password } = req.body;
 
-  if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-  if (!user.isVerified) return res.status(401).json({ message: "Debes verificar tu cuenta primero" });
+    // 1. Validar que vengan los campos obligatorios
+    if (!email || !password) {
+      return res.status(400).json({ message: "El correo y la contraseña son obligatorios" });
+    }
 
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) return res.status(401).json({ message: "Contraseña incorrecta" });
+    // 2. Buscar al usuario por su correo institucional
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET);
-  res.json({ token, user: { name: user.name, role: user.role } });
+    // 3. Verificar si ya activó la cuenta desde el correo
+    if (!user.isVerified) {
+      return res.status(401).json({ message: "Debes verificar tu cuenta institucional primero" });
+    }
+
+    // 4. Comparar contraseñas usando bcrypt
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: "Contraseña incorrecta" });
+    }
+
+    // 5. Generar el Token JWT (Le añadimos expiración por seguridad, ej. 24 horas)
+    const token = jwt.sign(
+      { id: user.id, role: user.role }, 
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // 6. Respuesta limpia, con mensaje de éxito y datos corregidos
+    res.status(200).json({
+      message: "Inicio de sesión exitoso. ¡Bienvenido!",
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.log("ERROR EN LOGIN:", error);
+    res.status(500).json({ message: "Error interno del servidor al intentar iniciar sesión." });
+  }
 };
 
 export const forgotPassword = async (req, res) => {
@@ -123,6 +161,7 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 export const getProfile = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
