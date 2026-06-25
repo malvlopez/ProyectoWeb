@@ -25,6 +25,7 @@ model User {
   verificationToken String?
   resetToken        String?
   createdAt         DateTime @default(now())
+  resetTokenExpires DateTime?
   updatedAt         DateTime @updatedAt 
 
   roles             UserRole[]
