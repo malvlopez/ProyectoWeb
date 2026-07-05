@@ -11,13 +11,18 @@ const Register = () => {
   const navigate = useNavigate();
 
   const onSubmit = async (dataForm) => {
-    await fetchDataBackend("/auth/register", dataForm, "POST");
+    const formattedData = {
+      name: `${dataForm.firstName} ${dataForm.lastName}`.trim(),
+      email: dataForm.email,
+      password: dataForm.password
+    };
+
+    await fetchDataBackend("/auth/register", formattedData, "POST");
     navigate("/login");
   };
 
   return (
     <div className="flex flex-col sm:flex-row min-h-screen font-sans">
-      {/* LADO IZQUIERDO: Formulario */}
       <div className="w-full sm:w-1/2 min-h-screen bg-white flex justify-center items-center px-8 sm:px-16 py-12">
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Crea tu cuenta</h1>
@@ -31,7 +36,13 @@ const Register = () => {
                   type="text"
                   placeholder="Ej. Juan"
                   className="w-full rounded-lg border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  {...register("firstName", { required: "El nombre es obligatorio" })}
+                  {...register("firstName", { 
+                    required: "El nombre es obligatorio",
+                    pattern: {
+                      value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                      message: "Solo se permiten letras"
+                    }
+                  })}
                 />
                 {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
               </div>
@@ -41,7 +52,13 @@ const Register = () => {
                   type="text"
                   placeholder="Ej. Pérez"
                   className="w-full rounded-lg border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  {...register("lastName", { required: "El apellido es obligatorio" })}
+                  {...register("lastName", { 
+                    required: "El apellido es obligatorio",
+                    pattern: {
+                      value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                      message: "Solo se permiten letras"
+                    }
+                  })}
                 />
                 {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
               </div>
@@ -109,7 +126,6 @@ const Register = () => {
         </div>
       </div>
 
-      {/* LADO DERECHO: Imagen Decorativa */}
       <div 
         className="hidden sm:flex w-1/2 min-h-screen relative bg-cover bg-center"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop')" }}
@@ -122,7 +138,6 @@ const Register = () => {
             Únete a cientos de estudiantes de la ESFOT que ya están optimizando su tiempo de estudio con inteligencia artificial adaptada a sus necesidades.
           </p>
           <div className="mt-10 flex gap-4">
-             {/* Un pequeño detalle decorativo de stats para que se vea más profesional */}
              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
                 <p className="text-white font-bold text-2xl">100%</p>
                 <p className="text-blue-200 text-xs uppercase tracking-widest">Personalizado</p>
