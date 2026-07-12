@@ -10,7 +10,8 @@ import Register from "./pages/Register";
 import Confirm from "./pages/Confirm";
 import Forgot from "./pages/Forgot";
 import Reset from "./pages/Reset";
-import Dashboard from "./pages/Dashboard";
+import StudentDashboard from "./pages/StudentDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -28,8 +29,12 @@ function App() {
             <Route path="/reset-password/:token" element={<Reset />} />
           </Route>
 
-          <Route element={<PrivateRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+          <Route element={<PrivateRoute allowedRoles={['STUDENT']} />}>
+            <Route path="/dashboard" element={<StudentDashboard />} />
+          </Route>
+
+          <Route element={<PrivateRoute allowedRoles={['ADMIN']} />}>
+            <Route path="/admin" element={<AdminDashboard />} />
           </Route>
         </Routes>
       </AuthProvider>

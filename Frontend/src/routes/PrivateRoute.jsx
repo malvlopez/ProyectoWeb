@@ -2,10 +2,25 @@ import { useContext } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import AuthContext from "../context/AuthProvider";
 
-const PrivateRoute = () => {
+const PrivateRoute = ({ allowedRoles }) => {
   const { auth } = useContext(AuthContext);
 
-  return auth.token ? <Outlet /> : <Navigate to="/login" replace />;
+  if (!auth.token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && auth.user && auth.user.roles) {
+    const hasRole = auth.user.roles.some(role => allowedRoles.includes(role));
+    
+    if (!hasRole) {
+      if (auth.user.roles.includes("ADMIN")) {
+        return <Navigate to="/admin" replace />;
+      }
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return <Outlet />;
 };
 
 export default PrivateRoute;
