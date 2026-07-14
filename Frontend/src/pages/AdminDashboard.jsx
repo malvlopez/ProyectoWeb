@@ -2,6 +2,9 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 import AuthContext from '../context/AuthProvider';
+import UsersManager from './admin/UsersManager';
+import ResourcesManager from './ResourcesManager';
+import RoutesManager from './RoutesManager';
 
 const AdminDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -26,11 +29,14 @@ const AdminDashboard = () => {
   useEffect(() => {
     const loadProfile = async () => {
       const response = await fetchDataBackend('/auth/profile', null, 'GET', {}, false);
+      
       if (response && !response.error) {
-        const nameParts = response.name.split(' ');
+        const userName = response.name || response.user?.name || 'Administrador';
+        const nameParts = userName.split(' ');
+        
         const calculatedInitials = nameParts.length > 1 
           ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
-          : response.name.substring(0, 2).toUpperCase();
+          : userName.substring(0, 2).toUpperCase();
 
         setUserData({
           ...response,
@@ -40,6 +46,7 @@ const AdminDashboard = () => {
       }
       setLoadingProfile(false);
     };
+    
     loadProfile();
   }, []);
 
@@ -53,46 +60,66 @@ const AdminDashboard = () => {
   };
 
   const renderContent = () => {
-    if (activeTab === 'inicio') {
-      return (
-        <div className="space-y-8">
-          <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
-            <div className="p-8 md:p-10 relative overflow-hidden">
-              <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-600/10 rounded-full blur-3xl"></div>
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider mb-4 border border-emerald-100 dark:border-emerald-500/20">
-                  Panel de Administración
+    switch (activeTab) {
+      case 'inicio':
+        return (
+          <div className="space-y-8">
+            <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+              <div className="p-8 md:p-10 relative overflow-hidden">
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-600/10 rounded-full blur-3xl"></div>
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider mb-4 border border-emerald-100 dark:border-emerald-500/20">
+                    Panel de Administración
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">Gestión Operativa de Rutas</h2>
+                  <p className="text-slate-500 dark:text-slate-400 max-w-xl text-base leading-relaxed">Desde aquí puedes configurar el acceso de los estudiantes, gestionar la base de conocimientos y revisar las métricas de la IA.</p>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">Gestión Operativa de Rutas</h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-xl text-base leading-relaxed">Desde aquí puedes configurar el acceso de los estudiantes, gestionar la base de conocimientos y revisar las métricas de la IA.</p>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Estudiantes Activos</h3>
+                <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Recursos Subidos</h3>
+                <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Sesiones de IA</h3>
+                <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
               </div>
             </div>
-          </section>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Estudiantes Activos</h3>
-              <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Recursos Subidos</h3>
-              <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
-            </div>
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-              <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">Sesiones de IA</h3>
-              <p className="text-4xl font-black text-slate-800 dark:text-white">0</p>
-            </div>
           </div>
-        </div>
-      );
+        );
+      case 'usuarios':
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
+            <h2 className="text-2xl font-bold mb-4">Vista Activa: Gestión de Usuarios</h2>
+            <UsersManager />
+          </div>
+        );
+      case 'recursos':
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
+            <ResourcesManager />
+          </div>
+        );
+      case 'rutas':
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
+            <RoutesManager />
+          </div>
+        );
+      default:
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
+            <h2 className="text-2xl font-bold mb-4">Vista Activa: {activeTab}</h2>
+            <p>Módulo en construcción...</p>
+          </div>
+        );
     }
-
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-2xl font-bold mb-4">Vista Activa: {activeTab}</h2>
-        <p className="text-slate-500">Módulo de administración en construcción.</p>
-      </div>
-    );
   };
 
   if (loadingProfile || !userData) {
@@ -123,6 +150,7 @@ const AdminDashboard = () => {
             <button onClick={() => setActiveTab('usuarios')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'usuarios' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Gestión de Usuarios</button>
             <button onClick={() => setActiveTab('recursos')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'recursos' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Gestión de Recursos</button>
             <button onClick={() => setActiveTab('metricas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'metricas' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Métricas Generales</button>
+            <button onClick={() => setActiveTab('rutas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'rutas' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Rutas de Aprendizaje</button>
           </nav>
         </div>
 

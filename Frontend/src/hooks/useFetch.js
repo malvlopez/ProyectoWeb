@@ -17,10 +17,11 @@ export function useFetch() {
         try {
             const token = sessionStorage.getItem("token");
             const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+            const baseUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
             const response = await axios({
                 method,
-                url: `${import.meta.env.VITE_BACKEND_URL}${url}`,
+                url: `${baseUrl}${url}`,
                 headers: {
                     "Content-Type": "application/json",
                     ...authHeaders,

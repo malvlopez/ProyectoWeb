@@ -2,13 +2,20 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 import AuthContext from '../context/AuthProvider';
+import { getRoutes } from '../api/route.api';
+import Chatbot from '../components/Chatbot';
 
 const StudentDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [activeTab, setActiveTab] = useState('inicio');
+  const [showChat, setShowChat] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const [availableRoutes, setAvailableRoutes] = useState([]);
+  const [loadingRoutes, setLoadingRoutes] = useState(true);
+  const [selectedRoute, setSelectedRoute] = useState(null);
 
   const { fetchDataBackend } = useFetch();
   const { logoutAuth } = useContext(AuthContext);
@@ -62,7 +69,7 @@ const StudentDashboard = () => {
       const response = await fetchDataBackend('/auth/profile', null, 'GET', {}, false);
       if (response && !response.error) {
         const nameParts = response.name.split(' ');
-        const calculatedInitials = nameParts.length > 1 
+        const calculatedInitials = nameParts.length > 1
           ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
           : response.name.substring(0, 2).toUpperCase();
 
@@ -81,6 +88,20 @@ const StudentDashboard = () => {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    const fetchAvailableRoutes = async () => {
+      try {
+        const data = await getRoutes();
+        setAvailableRoutes(data);
+      } catch (error) {
+        console.error("Error al cargar las rutas:", error);
+      } finally {
+        setLoadingRoutes(false);
+      }
+    };
+    fetchAvailableRoutes();
+  }, []);
+
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
@@ -88,6 +109,34 @@ const StudentDashboard = () => {
   const handleLogout = () => {
     logoutAuth();
     navigate('/');
+  };
+
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'BEGINNER': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+      case 'INTERMEDIATE': return 'bg-sky-500/10 text-sky-500 border-sky-500/20';
+      case 'ADVANCED': return 'bg-violet-500/10 text-violet-500 border-violet-500/20';
+      default: return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+    }
+  };
+
+  const getDifficultyText = (difficulty) => {
+    switch (difficulty) {
+      case 'BEGINNER': return 'Principiante';
+      case 'INTERMEDIATE': return 'Intermedio';
+      case 'ADVANCED': return 'Avanzado';
+      default: return difficulty;
+    }
+  };
+
+  const getResourceIcon = (type) => {
+    switch (type) {
+      case 'PDF': return '📄';
+      case 'VIDEO': return '▶️';
+      case 'LINK': return '🔗';
+      case 'IMAGE': return '🖼️';
+      default: return '📁';
+    }
   };
 
   const renderContent = () => {
@@ -109,7 +158,7 @@ const StudentDashboard = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="bg-slate-50 dark:bg-slate-800/30 p-8 border-l border-slate-200 dark:border-slate-800 w-full md:w-80 flex flex-col justify-center">
               <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                 <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -183,7 +232,7 @@ const StudentDashboard = () => {
                   <svg className="absolute w-full h-full text-violet-500/50 dark:text-violet-500/40" viewBox="0 0 100 100">
                     <polygon points="50,15 85,30 60,65 50,75 15,55 25,25" fill="currentColor" stroke="rgb(139, 92, 246)" strokeWidth="2" strokeLinejoin="round" />
                   </svg>
-                  
+
                   <span className="absolute top-0 text-[9px] font-bold text-slate-500 -translate-y-2">Backend</span>
                   <span className="absolute top-[20%] right-0 text-[9px] font-bold text-slate-500 translate-x-3">Frontend</span>
                   <span className="absolute bottom-[20%] right-0 text-[9px] font-bold text-slate-500 translate-x-2">Bases de Datos</span>
@@ -195,6 +244,144 @@ const StudentDashboard = () => {
             </div>
           </div>
         </>
+      );
+    }
+
+    if (activeTab === 'explorar') {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight mb-2">Explorar Rutas</h2>
+            <p className="text-slate-500 dark:text-slate-400">Descubre nuevos caminos de aprendizaje estructurados por tus profesores.</p>
+          </div>
+
+          {loadingRoutes ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-violet-600"></div>
+            </div>
+          ) : availableRoutes.length === 0 ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-12 text-center shadow-sm">
+              <span className="text-4xl block mb-4">📚</span>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No hay rutas disponibles</h3>
+              <p className="text-slate-500 dark:text-slate-400">Pronto se añadirán nuevas rutas de aprendizaje a la plataforma.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {availableRoutes.map((route) => (
+                <div key={route.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden hover:border-violet-500/50 transition-all hover:shadow-lg hover:shadow-violet-500/10 flex flex-col h-full group shadow-sm">
+                  <div className="p-6 flex-grow">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${getDifficultyColor(route.difficulty)}`}>
+                        {getDifficultyText(route.difficulty)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        ⏱️ {route.estimatedTime} min
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-3 line-clamp-2 group-hover:text-violet-500 transition-colors">
+                      {route.title}
+                    </h3>
+
+                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
+                      {route.description || 'Sin descripción disponible.'}
+                    </p>
+                  </div>
+
+                  <div className="p-6 pt-0 mt-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedRoute(route);
+                        setActiveTab('detalle-ruta');
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-800 hover:bg-violet-600 hover:text-white dark:hover:bg-violet-600 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-xl transition-all duration-300"
+                    >
+                      Ver Detalles
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === 'detalle-ruta' && selectedRoute) {
+      return (
+        <div className="space-y-6">
+          <button
+            onClick={() => setActiveTab('explorar')}
+            className="flex items-center gap-2 text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 font-semibold transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver al catálogo
+          </button>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+            <div className="flex flex-wrap gap-3 mb-6">
+              <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${getDifficultyColor(selectedRoute.difficulty)}`}>
+                {getDifficultyText(selectedRoute.difficulty)}
+              </span>
+              <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700">
+                ⏱️ {selectedRoute.estimatedTime} Minutos
+              </span>
+            </div>
+
+            <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight mb-4">{selectedRoute.title}</h2>
+            <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-10 max-w-3xl">
+              {selectedRoute.description}
+            </p>
+
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
+              Material de Estudio
+            </h3>
+
+            {(!selectedRoute.resources || selectedRoute.resources.length === 0) ? (
+              <p className="text-slate-500 dark:text-slate-400">Esta ruta aún no tiene recursos asignados.</p>
+            ) : (
+              <div className="space-y-4 mb-10">
+                {selectedRoute.resources.map((item, index) => {
+                  const res = item.resource || item;
+                  return (
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-violet-400 transition-colors gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl shadow-sm">
+                          {getResourceIcon(res.type)}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 dark:text-white">{res.title}</h4>
+                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{res.type}</span>
+                        </div>
+                      </div>
+                      <a
+                        href={res.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-center sm:text-left bg-white dark:bg-slate-700 hover:bg-violet-50 dark:hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-slate-200 dark:border-slate-600 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors"
+                      >
+                        Abrir Recurso
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="bg-violet-600/10 border border-violet-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white text-lg mb-1">¿Terminaste de estudiar?</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Abre el asistente de IA para poner a prueba tus conocimientos y ganar XP.</p>
+              </div>
+              <button
+                onClick={() => setShowChat(true)}
+                className="whitespace-nowrap bg-violet-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors shadow-lg shadow-violet-500/20 flex items-center gap-2"
+              >
+                <span>🤖</span> Hablar con la IA
+              </button>
+            </div>
+          </div>
+        </div>
       );
     }
 
@@ -216,7 +403,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex transition-colors duration-300">
-      
+
       <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col justify-between p-6 z-10">
         <div className="space-y-8">
           <div className="flex items-center gap-3">
@@ -261,7 +448,7 @@ const StudentDashboard = () => {
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-extrabold text-slate-800 dark:text-white hidden sm:block">Centro de Entrenamiento Técnico</h1>
           </div>
-          
+
           <div className="flex items-center gap-5">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
               <span className="text-amber-500 text-lg">🔥</span>
@@ -271,7 +458,7 @@ const StudentDashboard = () => {
               </div>
             </div>
             <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-            
+
             <div className="relative">
               <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 text-left focus:outline-none">
                 <div className="text-right hidden sm:block">
@@ -297,10 +484,23 @@ const StudentDashboard = () => {
           {renderContent()}
         </main>
       </div>
-      
-      <button className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-full shadow-2xl shadow-slate-900/50 hover:scale-110 transition-transform z-50 flex items-center justify-center group">
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-      </button>
+
+      {showChat && selectedRoute && (
+        <Chatbot
+          routeId={selectedRoute.id}
+          routeTitle={selectedRoute.title}
+          onClose={() => setShowChat(false)}
+        />
+      )}
+
+      {selectedRoute && (
+        <button
+          onClick={() => setShowChat(!showChat)}
+          className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-full shadow-2xl shadow-slate-900/50 hover:scale-110 transition-transform z-50 flex items-center justify-center group"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        </button>
+      )}
     </div>
   );
 };
