@@ -4,10 +4,12 @@ import { useFetch } from '../hooks/useFetch';
 import AuthContext from '../context/AuthProvider';
 import { getRoutes } from '../api/route.api';
 import Chatbot from '../components/Chatbot';
+import CodeWorkspace from '../components/CodeWorkspace';
 
 const StudentDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [activeTab, setActiveTab] = useState('inicio');
+  const [routeViewMode, setRouteViewMode] = useState('teoria');
   const [showChat, setShowChat] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -109,6 +111,11 @@ const StudentDashboard = () => {
   const handleLogout = () => {
     logoutAuth();
     navigate('/');
+  };
+
+  const handleSendCodeToAI = (code, language, output) => {
+    setShowChat(true);
+    console.log("Datos capturados del entorno de práctica:", { code, language, output });
   };
 
   const getDifficultyColor = (difficulty) => {
@@ -292,6 +299,7 @@ const StudentDashboard = () => {
                     <button
                       onClick={() => {
                         setSelectedRoute(route);
+                        setRouteViewMode('teoria');
                         setActiveTab('detalle-ruta');
                       }}
                       className="w-full bg-slate-50 dark:bg-slate-800 hover:bg-violet-600 hover:text-white dark:hover:bg-violet-600 text-slate-700 dark:text-slate-300 font-bold py-3 px-4 rounded-xl transition-all duration-300"
@@ -329,57 +337,76 @@ const StudentDashboard = () => {
             </div>
 
             <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight mb-4">{selectedRoute.title}</h2>
-            <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-10 max-w-3xl">
+            <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-8 max-w-3xl">
               {selectedRoute.description}
             </p>
 
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-              Material de Estudio
-            </h3>
-
-            {(!selectedRoute.resources || selectedRoute.resources.length === 0) ? (
-              <p className="text-slate-500 dark:text-slate-400">Esta ruta aún no tiene recursos asignados.</p>
-            ) : (
-              <div className="space-y-4 mb-10">
-                {selectedRoute.resources.map((item, index) => {
-                  const res = item.resource || item;
-                  return (
-                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-violet-400 transition-colors gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl shadow-sm">
-                          {getResourceIcon(res.type)}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-800 dark:text-white">{res.title}</h4>
-                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{res.type}</span>
-                        </div>
-                      </div>
-                      <a
-                        href={res.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-center sm:text-left bg-white dark:bg-slate-700 hover:bg-violet-50 dark:hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-slate-200 dark:border-slate-600 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors"
-                      >
-                        Abrir Recurso
-                      </a>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="bg-violet-600/10 border border-violet-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h4 className="font-bold text-slate-800 dark:text-white text-lg mb-1">¿Terminaste de estudiar?</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Abre el asistente de IA para poner a prueba tus conocimientos y ganar XP.</p>
-              </div>
+            <div className="flex gap-4 mb-8 border-b border-slate-200 dark:border-slate-800 pb-px">
               <button
-                onClick={() => setShowChat(true)}
-                className="whitespace-nowrap bg-violet-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                onClick={() => setRouteViewMode('teoria')}
+                className={`pb-4 px-2 text-sm font-bold border-b-2 transition-colors ${routeViewMode === 'teoria' ? 'border-violet-600 text-violet-600 dark:text-violet-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
-                <span>🤖</span> Hablar con la IA
+                Material de Estudio
+              </button>
+              <button
+                onClick={() => setRouteViewMode('practica')}
+                className={`pb-4 px-2 text-sm font-bold border-b-2 transition-colors ${routeViewMode === 'practica' ? 'border-violet-600 text-violet-600 dark:text-violet-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                Entorno de Práctica
               </button>
             </div>
+
+            {routeViewMode === 'teoria' ? (
+              <>
+                {(!selectedRoute.resources || selectedRoute.resources.length === 0) ? (
+                  <p className="text-slate-500 dark:text-slate-400 mb-10">Esta ruta aún no tiene recursos asignados.</p>
+                ) : (
+                  <div className="space-y-4 mb-10">
+                    {selectedRoute.resources.map((item, index) => {
+                      const res = item.resource || item;
+                      return (
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-violet-400 transition-colors gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center text-2xl shadow-sm">
+                              {getResourceIcon(res.type)}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-800 dark:text-white">{res.title}</h4>
+                              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{res.type}</span>
+                            </div>
+                          </div>
+                          <a
+                            href={res.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-center sm:text-left bg-white dark:bg-slate-700 hover:bg-violet-50 dark:hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-slate-200 dark:border-slate-600 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors"
+                          >
+                            Abrir Recurso
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="bg-violet-600/10 border border-violet-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h4 className="font-bold text-slate-800 dark:text-white text-lg mb-1">¿Terminaste de estudiar?</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Pasa al entorno de práctica o abre el asistente de IA para poner a prueba tus conocimientos.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowChat(true)}
+                    className="whitespace-nowrap bg-violet-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                  >
+                    <span>🤖</span> Hablar con la IA
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="animate-fade-in">
+                <CodeWorkspace onSendToAI={handleSendCodeToAI} />
+              </div>
+            )}
           </div>
         </div>
       );

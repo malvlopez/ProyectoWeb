@@ -40,7 +40,7 @@ function App() {
           </Route>
 
           <Route path="/admin/dashboard" element={<UsersManager />} />
-w
+
           <Route path="/admin/resources" element={<ResourcesManager />} />
         </Routes>
       </AuthProvider>
