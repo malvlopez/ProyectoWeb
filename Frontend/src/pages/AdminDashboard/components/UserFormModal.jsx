@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createUser, updateUser } from '../../api/admin.api';
+import { createUser, updateUser } from '../../../api/admin.api';
 
 const UserFormModal = ({ isOpen, onClose, userToEdit, token }) => {
   const [formData, setFormData] = useState({

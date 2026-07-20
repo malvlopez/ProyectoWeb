@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getUsers, toggleUserStatus } from '../../api/admin.api';
+import { getUsers, toggleUserStatus } from '../../../api/admin.api';
 import UsersTable from './UsersTable';
 import UserFormModal from './UserFormModal';
 

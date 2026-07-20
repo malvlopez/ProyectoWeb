@@ -12,8 +12,6 @@ import Forgot from "./pages/Forgot";
 import Reset from "./pages/Reset";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import UsersManager from './pages/admin/UsersManager';
-import ResourcesManager from './pages/ResourcesManager';
 
 function App() {
   return (
@@ -38,10 +36,6 @@ function App() {
           <Route element={<PrivateRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />
           </Route>
-
-          <Route path="/admin/dashboard" element={<UsersManager />} />
-
-          <Route path="/admin/resources" element={<ResourcesManager />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

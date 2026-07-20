@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-const Chatbot = ({ routeId, routeTitle, onClose }) => {
+const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, codeToEvaluate, onCodeEvaluated }) => {
   const [messages, setMessages] = useState([
     {
       sender: 'AI',
@@ -11,13 +11,25 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [retoEnviadoId, setRetoEnviadoId] = useState(null);
   
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (showChat) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, showChat]);
+
+  useEffect(() => {
+    if (codeToEvaluate) {
+      processMessage(codeToEvaluate, null);
+      if (onCodeEvaluated) {
+        onCodeEvaluated();
+      }
+    }
+  }, [codeToEvaluate]);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -26,31 +38,25 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
     }
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() && !selectedFile) return;
-
-    const userMessage = input.trim();
-    const token = sessionStorage.getItem('token'); 
+  const processMessage = async (text, file) => {
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token'); 
 
     if (!token) {
       setMessages(prev => [...prev, { sender: 'AI', text: "Error de autenticación. Por favor, vuelve a iniciar sesión." }]);
       return;
     }
 
-    setInput('');
     setMessages(prev => [...prev, { 
       sender: 'STUDENT', 
-      text: userMessage || 'Archivo adjunto enviado',
-      file: selectedFile ? selectedFile.name : null 
+      text: text || 'Archivo adjunto enviado',
+      file: file ? file.name : null 
     }]);
     
-    setSelectedFile(null);
     setIsLoading(true);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-      const response = await fetch(`${backendUrl}/api/chat/send`, {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${backendUrl}/chat/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +64,7 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
         },
         body: JSON.stringify({
           routeId,
-          message: userMessage || 'Revisa el archivo adjunto (simulación).',
+          message: text || 'Revisa el archivo adjunto (simulación).',
           sessionId
         })
       });
@@ -81,10 +87,32 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
     }
   };
 
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (!input.trim() && !selectedFile) return;
+
+    processMessage(input.trim(), selectedFile);
+    
+    setInput('');
+    setSelectedFile(null);
+  };
+
+  const handleAsignarReto = (text, idx) => {
+    if (onAsignarNuevoReto) {
+      onAsignarNuevoReto(text);
+      setRetoEnviadoId(idx);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm transition-all duration-300">
+    <div className={`fixed inset-0 z-50 flex justify-end transition-all duration-300 ${showChat ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'}`}>
       
-      <div className="w-full sm:w-[450px] h-full bg-slate-50 dark:bg-slate-950 flex flex-col shadow-2xl animate-slide-in-right">
+      <div 
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+        onClick={onClose}
+      ></div>
+
+      <div className={`relative w-full sm:w-[450px] h-full bg-slate-50 dark:bg-slate-950 flex flex-col shadow-2xl transition-transform duration-300 ${showChat ? 'translate-x-0' : 'translate-x-full'}`}>
         
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-5 flex justify-between items-center text-white shadow-md">
           <div className="flex items-center gap-4">
@@ -106,9 +134,9 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.sender === 'STUDENT' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl p-4 text-[15px] leading-relaxed shadow-sm ${
+              <div className={`max-w-[85%] rounded-2xl p-4 text-[15px] leading-relaxed shadow-sm flex flex-col ${
                 msg.sender === 'STUDENT' 
-                  ? 'bg-violet-600 text-white rounded-tr-sm' 
+                  ? 'bg-violet-600 text-white rounded-tr-sm whitespace-pre-wrap' 
                   : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm whitespace-pre-wrap'
               }`}>
                 {msg.file && (
@@ -117,7 +145,31 @@ const Chatbot = ({ routeId, routeTitle, onClose }) => {
                     <span className="truncate">{msg.file}</span>
                   </div>
                 )}
-                {msg.text}
+                
+                <span>{msg.text}</span>
+
+                {msg.sender === 'AI' && onAsignarNuevoReto && (
+                  <button
+                    onClick={() => handleAsignarReto(msg.text, idx)}
+                    className={`mt-3 self-start flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      retoEnviadoId === idx 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                        : 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/20'
+                    }`}
+                  >
+                    {retoEnviadoId === idx ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                        Enviado al editor
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Asignar como reto
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}
