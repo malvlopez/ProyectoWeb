@@ -10,15 +10,6 @@ const StudentHeader = ({ userData, setActiveTab }) => {
       </div>
 
       <div className="flex items-center gap-5">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
-          <span className="text-amber-500 text-lg">🔥</span>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase leading-none">Racha Actual</span>
-            <span className="text-sm font-black text-slate-800 dark:text-white leading-none mt-0.5">{userData.streak} Días</span>
-          </div>
-        </div>
-        <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-
         <div className="relative">
           <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="flex items-center gap-3 text-left focus:outline-none">
             <div className="text-right hidden sm:block">

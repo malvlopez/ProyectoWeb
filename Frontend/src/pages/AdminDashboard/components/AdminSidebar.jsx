@@ -3,7 +3,7 @@ const AdminSidebar = ({ activeTab, setActiveTab, toggleTheme, onLogout }) => {
     <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col justify-between p-6 z-10">
       <div className="space-y-8">
         <div className="flex items-center gap-3">
-          <div className="bg-slate-900 text-white p-2 rounded-xl font-black text-lg tracking-tighter">
+          <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-2 rounded-xl font-black text-lg tracking-tighter">
             EPN
           </div>
           <div>
@@ -16,7 +16,6 @@ const AdminSidebar = ({ activeTab, setActiveTab, toggleTheme, onLogout }) => {
           <button onClick={() => setActiveTab('inicio')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'inicio' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Resumen Operativo</button>
           <button onClick={() => setActiveTab('usuarios')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'usuarios' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Gestión de Usuarios</button>
           <button onClick={() => setActiveTab('recursos')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'recursos' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Gestión de Recursos</button>
-          <button onClick={() => setActiveTab('metricas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'metricas' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Métricas Generales</button>
           <button onClick={() => setActiveTab('rutas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'rutas' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Rutas de Aprendizaje</button>
         </nav>
       </div>

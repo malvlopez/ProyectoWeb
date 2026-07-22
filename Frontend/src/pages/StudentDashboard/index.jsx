@@ -25,6 +25,7 @@ const StudentDashboard = () => {
   const [availableRoutes, setAvailableRoutes] = useState([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState(null);
+  const [activeModuleForChat, setActiveModuleForChat] = useState(null);
 
   const { fetchDataBackend } = useFetch();
   const { logoutAuth } = useContext(AuthContext);
@@ -32,7 +33,13 @@ const StudentDashboard = () => {
 
   const [codeToEvaluate, setCodeToEvaluate] = useState(null);
   const [contextoEvaluacion, setContextoEvaluacion] = useState(() => {
-    return localStorage.getItem('retoActualIA') || "";
+    const saved = localStorage.getItem('retoActualIA');
+    if (!saved) return "";
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      return saved;
+    }
   });
 
   useEffect(() => {
@@ -74,7 +81,6 @@ const StudentDashboard = () => {
         const data = await getRoutes();
         setAvailableRoutes(data);
       } catch (error) {
-        console.error("Error al cargar las rutas:", error);
       } finally {
         setLoadingRoutes(false);
       }
@@ -83,7 +89,7 @@ const StudentDashboard = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('retoActualIA', contextoEvaluacion);
+    localStorage.setItem('retoActualIA', typeof contextoEvaluacion === 'object' ? JSON.stringify(contextoEvaluacion) : contextoEvaluacion);
   }, [contextoEvaluacion]);
 
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
@@ -93,9 +99,25 @@ const StudentDashboard = () => {
     navigate('/');
   };
 
+  const handleOpenChat = (moduleId = null, moduleTitle = null) => {
+    setActiveModuleForChat({ id: moduleId, title: moduleTitle });
+    setShowChat(true);
+  };
+
   const handleSendCodeToAI = (code, language, output) => {
-    const instruccionFinal = contextoEvaluacion || selectedRoute?.description || "Resuelve el problema planteado.";
-    const mensajeFormateado = `¡Hola! Necesito que evalúes mi código en ${language}.\n\nInstrucción del reto:\n${instruccionFinal}\n\nMi código:\n${code}\n\nSalida en consola:\n${output || "Sin salida en consola"}`;
+    let mensajeFormateado = "";
+    if (language === 'multitask') {
+      mensajeFormateado = code;
+    } else {
+      let instruccionFinal = "";
+      if (typeof contextoEvaluacion === 'object') {
+        instruccionFinal = contextoEvaluacion?.context || "Reto práctico.";
+      } else {
+        instruccionFinal = contextoEvaluacion || selectedRoute?.description || "Resuelve el problema planteado.";
+      }
+      mensajeFormateado = `¡Hola! Necesito que evalúes mi código en ${language}.\n\nInstrucción del reto:\n${instruccionFinal}\n\nMi código:\n${code}\n\nSalida en consola:\n${output || "Sin salida en consola"}`;
+    }
+    
     setCodeToEvaluate(mensajeFormateado);
     setShowChat(true);
   };
@@ -125,9 +147,11 @@ const StudentDashboard = () => {
         return (
           <RoutesViewer 
             setActiveTab={setActiveTab}
-            onOpenChat={(moduleId, moduleTitle) => {
-              console.log("Abrir chat para el módulo:", moduleTitle);
-              setShowChat(true);
+            onSelectRoute={(route) => {
+              setSelectedRoute(route);
+              setRouteViewMode('teoria');
+              setActiveTab('detalle-ruta');
+              setContextoEvaluacion("");
             }} 
           />
         );
@@ -143,8 +167,9 @@ const StudentDashboard = () => {
             setViewMode={setRouteViewMode}
             onBack={() => setActiveTab('explorar')}
             contextoEvaluacion={contextoEvaluacion}
+            setContextoEvaluacion={setContextoEvaluacion}
             onSendToAI={handleSendCodeToAI}
-            onOpenChat={() => setShowChat(true)}
+            onOpenChat={handleOpenChat}
           />
         );
       default:
@@ -177,21 +202,23 @@ const StudentDashboard = () => {
         </main>
       </div>
 
-      {selectedRoute && (
-        <Chatbot
-          showChat={showChat}
-          routeId={selectedRoute.id}
-          routeTitle={selectedRoute.title}
-          onClose={() => setShowChat(false)}
-          onAsignarNuevoReto={(nuevoRetoTexto) => setContextoEvaluacion(nuevoRetoTexto)}
-          codeToEvaluate={codeToEvaluate}
-          onCodeEvaluated={() => setCodeToEvaluate(null)}
-        />
-      )}
+      <Chatbot
+        showChat={showChat}
+        routeId={selectedRoute?.id}
+        routeTitle={selectedRoute?.title}
+        activeModule={activeModuleForChat}
+        onClose={() => setShowChat(false)}
+        onAsignarNuevoReto={(nuevoRetoTexto) => setContextoEvaluacion(nuevoRetoTexto)}
+        codeToEvaluate={codeToEvaluate}
+        onCodeEvaluated={() => setCodeToEvaluate(null)}
+      />
 
-      {selectedRoute && !showChat && (
+      {!showChat && (
         <button
-          onClick={() => setShowChat(true)}
+          onClick={() => {
+            setActiveModuleForChat(null); 
+            setShowChat(true);
+          }}
           className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-full shadow-2xl shadow-slate-900/50 hover:scale-110 transition-transform z-50 flex items-center justify-center group"
         >
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>

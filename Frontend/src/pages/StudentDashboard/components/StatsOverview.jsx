@@ -1,8 +1,7 @@
 const StatsOverview = () => {
   const stats = [
     { label: 'Nivel Actual', value: '1', icon: 'M13 10V3L4 14h7v7l9-11h-7z', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-    { label: 'Puntos de Experiencia', value: '0 XP', icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
-    { label: 'Racha de Estudio', value: '0 días', icon: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' }
+    { label: 'Puntos de Experiencia', value: '0 XP', icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' }
   ];
 
   return (
@@ -12,7 +11,7 @@ const StatsOverview = () => {
         <p className="text-slate-400 mt-2 text-lg">Aquí tienes el resumen de tu progreso en la plataforma.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((stat, idx) => (
           <div key={idx} className={`p-6 rounded-2xl bg-[#12141c] border ${stat.border} shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform`}>
             <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full opacity-20 ${stat.bg} -mr-4 -mt-4 transition-transform group-hover:scale-110`}></div>

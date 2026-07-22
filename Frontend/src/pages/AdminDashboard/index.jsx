@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useFetch } from '../../hooks/useFetch';
 import AuthContext from '../../context/AuthProvider';
 
-// Importaciones exclusivas del ADMIN
 import UsersManager from './components/UsersManager';
 import ResourcesManager from './components/ResourcesManager';
 import RoutesManager from './components/RoutesManager';
@@ -12,6 +11,7 @@ import RoleManager from './components/RoleManager';
 import AdminSidebar from './components/AdminSidebar';
 import AdminHeader from './components/AdminHeader';
 import AdminHome from './components/AdminHome';
+import AdminProfile from './components/AdminProfile';
 
 const AdminDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -73,6 +73,7 @@ const AdminDashboard = () => {
       case 'rutas': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RoutesManager /></div>;
       case 'constructor': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RouteBuilder /></div>;
       case 'roles': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RoleManager /></div>;
+      case 'perfil': return <AdminProfile userData={userData} />;
       default: return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><h2 className="text-2xl font-bold mb-4">Vista Activa: {activeTab}</h2><p>Módulo en construcción...</p></div>;
     }
   };

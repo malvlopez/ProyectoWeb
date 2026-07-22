@@ -1,18 +1,16 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useFetch } from "../hooks/useFetch";
+import { useFetch } from "../../hooks/useFetch";
 import { MdVisibility, MdVisibilityOff } from "react-icons/md";
-import AuthContext from "../context/AuthProvider";
 
-const Login = () => {
+const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   
   const { fetchDataBackend, loading } = useFetch();
   const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
-  const { loginAuth } = useContext(AuthContext);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -28,21 +26,14 @@ const Login = () => {
   };
 
   const onSubmit = async (dataForm) => {
-    try {
-      const response = await fetchDataBackend("/auth/login", dataForm, "POST");
-      
-      if (response && response.token) {
-        loginAuth(response.token, response.user);
-        
-        if (response.user.roles && response.user.roles.includes('ADMIN')) {
-          navigate("/admin");
-        } else {
-          navigate("/dashboard");
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    const formattedData = {
+      name: `${dataForm.firstName} ${dataForm.lastName}`.trim(),
+      email: dataForm.email,
+      password: dataForm.password
+    };
+
+    await fetchDataBackend("/auth/register", formattedData, "POST");
+    navigate("/login");
   };
 
   return (
@@ -69,44 +60,82 @@ const Login = () => {
         )}
       </button>
 
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-8 md:p-12 relative overflow-hidden mt-12 md:mt-0">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-violet-600 to-emerald-500"></div>
+      <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-8 md:p-12 relative overflow-hidden my-12 mt-20 md:mt-12">
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-violet-600"></div>
         
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="bg-violet-600 text-white p-1.5 rounded-md font-bold text-lg">ESFOT</div>
             <span className="text-xl font-bold text-slate-800 dark:text-white">Rutas</span>
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Bienvenido de nuevo</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Ingresa tus credenciales institucionales para continuar tu progreso en TSDS.</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Crea tu perfil TSDS</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Organiza tu malla curricular y asegura tu avance en la EPN.</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombres</label>
+              <input 
+                type="text" 
+                placeholder="Ej. Andrés Josué"
+                className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.firstName ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
+                {...register("firstName", { 
+                  required: "El nombre es obligatorio",
+                  pattern: {
+                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                    message: "Solo se permiten letras"
+                  }
+                })}
+              />
+              {errors.firstName && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.firstName.message}</p>}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Apellidos</label>
+              <input 
+                type="text" 
+                placeholder="Ej. Caiza Pilco"
+                className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.lastName ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
+                {...register("lastName", { 
+                  required: "El apellido es obligatorio",
+                  pattern: {
+                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
+                    message: "Solo se permiten letras"
+                  }
+                })}
+              />
+              {errors.lastName && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.lastName.message}</p>}
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Correo Institucional</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Correo Institucional (@epn.edu.ec)</label>
             <input 
               type="email" 
               placeholder="andres.caiza@epn.edu.ec"
               className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
               {...register("email", { 
-                required: "El correo es obligatorio"
+                required: "El correo es obligatorio",
+                pattern: {
+                  value: /^[a-zA-Z0-9._%+-]+@epn\.edu\.ec$/,
+                  message: "Usa tu correo institucional (@epn.edu.ec)"
+                }
               })}
             />
             {errors.email && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.email.message}</p>}
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña</label>
-              <a href="#" className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:underline">¿Olvidaste tu contraseña?</a>
-            </div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Contraseña</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="Mínimo 8 caracteres"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
                 {...register("password", { 
-                  required: "La contraseña es obligatoria"
+                  required: "La contraseña es obligatoria",
+                  minLength: { value: 8, message: "Mínimo 8 caracteres" }
                 })}
               />
               <button
@@ -120,22 +149,26 @@ const Login = () => {
             {errors.password && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.password.message}</p>}
           </div>
 
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed py-2">
+            Al registrarte, aceptas que el sistema procesará tus datos académicos para generar rutas de aprendizaje personalizadas.
+          </p>
+
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-violet-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
+            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-violet-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2 mt-4"
           >
-            {loading ? "Verificando..." : "Iniciar Sesión"}
-            {!loading && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>}
+            {loading ? "Creando cuenta..." : "Registrarse ahora"}
+            {!loading && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
-          ¿No tienes una cuenta? <Link to="/register" className="font-bold text-violet-600 dark:text-violet-400 hover:underline">Regístrate aquí</Link>
+          ¿Ya tienes una cuenta? <Link to="/login" className="font-bold text-violet-600 dark:text-violet-400 hover:underline">Inicia Sesión</Link>
         </p>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Register;

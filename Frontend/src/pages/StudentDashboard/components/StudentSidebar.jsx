@@ -16,7 +16,6 @@ const StudentSidebar = ({ activeTab, setActiveTab, userData, toggleTheme, onLogo
           <button onClick={() => setActiveTab('inicio')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'inicio' ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Centro de Mando</button>
           <button onClick={() => setActiveTab('explorar')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'explorar' ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Explorar Rutas</button>
           <button onClick={() => setActiveTab('mis-rutas')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'mis-rutas' ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Mis Rutas</button>
-          <button onClick={() => setActiveTab('boveda')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${activeTab === 'boveda' ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>Bóveda de Snippets</button>
         </nav>
       </div>
 

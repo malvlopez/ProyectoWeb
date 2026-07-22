@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
-const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, codeToEvaluate, onCodeEvaluated }) => {
-  const [messages, setMessages] = useState([
-    {
-      sender: 'AI',
-      text: `¡Hola! Soy tu tutor virtual de la EPN para la ruta de ${routeTitle}. ¿En qué te puedo ayudar hoy o prefieres que te ponga un reto práctico?`
-    }
-  ]);
+const Chatbot = ({ showChat, routeId, routeTitle, activeModule, onClose, onAsignarNuevoReto, codeToEvaluate, onCodeEvaluated }) => {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,11 +12,23 @@ const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, c
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  const currentGreeting = {
+    sender: 'AI',
+    isGreeting: true,
+    text: activeModule?.title
+      ? `¡Hola! Soy tu tutor virtual de la EPN. Actualmente estás en el módulo "${activeModule.title}". ¿En qué te puedo ayudar hoy o prefieres que te asigne un reto práctico sobre este tema específico?`
+      : routeTitle
+      ? `¡Hola! Soy tu tutor virtual de la EPN para la ruta "${routeTitle}". ¿En qué te puedo ayudar hoy o prefieres que te ponga un reto práctico?`
+      : `¡Hola! Soy tu tutor virtual de la EPN. ¿En qué te puedo ayudar hoy? Puedes hacerme consultas generales o pedirme ejercicios de programación sobre cualquier tema.`
+  };
+
+  const displayMessages = [currentGreeting, ...messages];
+
   useEffect(() => {
     if (showChat) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, showChat]);
+  }, [displayMessages, showChat]);
 
   useEffect(() => {
     if (codeToEvaluate) {
@@ -64,6 +72,7 @@ const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, c
         },
         body: JSON.stringify({
           routeId,
+          moduleId: activeModule?.id,
           message: text || 'Revisa el archivo adjunto (simulación).',
           sessionId
         })
@@ -122,7 +131,7 @@ const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, c
             <div>
               <h3 className="font-bold text-lg leading-tight">Tutor IA</h3>
               <span className="text-xs text-violet-200 font-medium tracking-wide truncate max-w-[200px] block">
-                {routeTitle}
+                {activeModule?.title || routeTitle || 'Asistente Global EPN'}
               </span>
             </div>
           </div>
@@ -132,47 +141,79 @@ const Chatbot = ({ showChat, routeId, routeTitle, onClose, onAsignarNuevoReto, c
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.sender === 'STUDENT' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl p-4 text-[15px] leading-relaxed shadow-sm flex flex-col ${
-                msg.sender === 'STUDENT' 
-                  ? 'bg-violet-600 text-white rounded-tr-sm whitespace-pre-wrap' 
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm whitespace-pre-wrap'
-              }`}>
-                {msg.file && (
-                  <div className="flex items-center gap-2 mb-3 p-2 bg-black/10 dark:bg-black/30 rounded-lg text-sm border border-black/5">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                    <span className="truncate">{msg.file}</span>
+          {displayMessages.map((msg, idx) => {
+            const messageId = msg.isGreeting ? 'greeting' : idx;
+            const isStudent = msg.sender === 'STUDENT';
+            
+            return (
+              <div key={messageId} className={`flex ${isStudent ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-4 text-[14px] leading-relaxed shadow-sm flex flex-col ${
+                  isStudent
+                    ? 'bg-violet-600 text-white rounded-tr-sm' 
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-sm'
+                }`}>
+                  {msg.file && (
+                    <div className="flex items-center gap-2 mb-3 p-2 bg-black/10 dark:bg-black/30 rounded-lg text-sm border border-black/5">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                      <span className="truncate">{msg.file}</span>
+                    </div>
+                  )}
+                  
+                  <div className="markdown-chat-container">
+                    <ReactMarkdown
+                      components={{
+                        p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold text-inherit" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li {...props} />,
+                        h3: ({node, ...props}) => <h3 className="font-bold text-lg mt-4 mb-2" {...props} />,
+                        h4: ({node, ...props}) => <h4 className="font-bold text-md mt-3 mb-1" {...props} />,
+                        code: ({node, className, children, ...props}) => {
+                          const match = /language-(\w+)/.exec(className || '');
+                          const isInline = !match && !String(children).includes('\n');
+                          return isInline ? (
+                            <code className={`px-1.5 py-0.5 rounded font-mono text-[13px] ${isStudent ? 'bg-black/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-violet-600 dark:text-violet-400'}`} {...props}>
+                              {children}
+                            </code>
+                          ) : (
+                            <code className={`block p-3 rounded-lg font-mono text-[13px] my-3 overflow-x-auto ${isStudent ? 'bg-black/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-violet-600 dark:text-violet-400'}`} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
                   </div>
-                )}
-                
-                <span>{msg.text}</span>
 
-                {msg.sender === 'AI' && onAsignarNuevoReto && (
-                  <button
-                    onClick={() => handleAsignarReto(msg.text, idx)}
-                    className={`mt-3 self-start flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      retoEnviadoId === idx 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                        : 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/20'
-                    }`}
-                  >
-                    {retoEnviadoId === idx ? (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                        Enviado al editor
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        Asignar como reto
-                      </>
-                    )}
-                  </button>
-                )}
+                  {msg.sender === 'AI' && !msg.isGreeting && onAsignarNuevoReto && (
+                    <button
+                      onClick={() => handleAsignarReto(msg.text, messageId)}
+                      className={`mt-4 self-start flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        retoEnviadoId === messageId 
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' 
+                          : 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-500/20'
+                      }`}
+                    >
+                      {retoEnviadoId === messageId ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                          🔄 Reenviar al editor
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                          Asignar como reto
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {isLoading && (
             <div className="flex justify-start">

@@ -1,24 +1,75 @@
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 
-const AIAssessmentForm = ({ assessmentData, onRetake }) => {
+const AIAssessmentForm = ({ assessmentData, onRetake, moduleId, onAssessmentComplete }) => {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOptionSelect = (questionId, option) => {
     if (submitted) return;
     setAnswers({ ...answers, [questionId]: option });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
     let currentScore = 0;
+    
     assessmentData.questions.forEach((q) => {
       if (answers[q.id] === q.correctAnswer) {
         currentScore += 1;
       }
     });
+    
     setScore(currentScore);
     setSubmitted(true);
+
+    const percentage = Math.round((currentScore / assessmentData.questions.length) * 100);
+    const isPassed = percentage >= 70;
+
+    try {
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      const endpoint = apiUrl.endsWith('/api') 
+        ? `${apiUrl}/routes/complete-module` 
+        : `${apiUrl}/api/routes/complete-module`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          moduleId: moduleId, 
+          score: percentage, 
+          passed: isPassed 
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (isPassed) {
+          if (data.xpGained) {
+            toast.success(`¡Módulo aprobado! +${data.xpGained} XP ganados.`);
+          } else {
+            toast.info(data.message);
+          }
+          if (onAssessmentComplete) onAssessmentComplete(data);
+        } else {
+          toast.warning('No alcanzaste el mínimo aprobatorio (70%). Sigue practicando y vuelve a intentarlo.');
+        }
+      } else {
+        toast.error(data.error || 'Error al procesar el resultado.');
+      }
+    } catch (error) {
+      toast.error('Error de conexión al guardar el progreso.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const calculatePercentage = () => {
@@ -116,9 +167,10 @@ const AIAssessmentForm = ({ assessmentData, onRetake }) => {
         ) : (
           <button
             onClick={handleSubmit}
-            disabled={Object.keys(answers).length < assessmentData.questions.length}
-            className="px-8 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-900/20"
+            disabled={Object.keys(answers).length < assessmentData.questions.length || isSubmitting}
+            className="px-8 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-900/20 flex items-center gap-2"
           >
+            {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>}
             Entregar Evaluación
           </button>
         )}
