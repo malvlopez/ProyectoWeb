@@ -11,8 +11,10 @@ import RouteExplorer from './components/RouteExplorer';
 import RouteDetails from './components/RouteDetails';
 import Chatbot from './components/Chatbot';
 import RoutesViewer from './components/RoutesViewer';
-import StudentProfile from './components/StudentProfile'; 
+import StudentProfile from './components/StudentProfile';
 import RouteGenerator from './components/RouteGenerator';
+
+import LiveSupportChat from '../../shared/LiveSupportChat';
 
 const StudentDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -93,7 +95,7 @@ const StudentDashboard = () => {
   }, [contextoEvaluacion]);
 
   const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light');
-  
+
   const handleLogout = () => {
     logoutAuth();
     navigate('/');
@@ -117,13 +119,21 @@ const StudentDashboard = () => {
       }
       mensajeFormateado = `¡Hola! Necesito que evalúes mi código en ${language}.\n\nInstrucción del reto:\n${instruccionFinal}\n\nMi código:\n${code}\n\nSalida en consola:\n${output || "Sin salida en consola"}`;
     }
-    
+
     setCodeToEvaluate(mensajeFormateado);
     setShowChat(true);
   };
 
   const handleUpdateUserPhoto = (newPhotoUrl) => {
     setUserData(prev => ({ ...prev, profilePicture: newPhotoUrl }));
+
+    const storageUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storageUser) {
+      const parsedUser = JSON.parse(storageUser);
+      parsedUser.profilePicture = newPhotoUrl;
+      const storageType = localStorage.getItem('user') ? localStorage : sessionStorage;
+      storageType.setItem('user', JSON.stringify(parsedUser));
+    }
   };
 
   const renderContent = () => {
@@ -132,27 +142,27 @@ const StudentDashboard = () => {
         return <DashboardHome userData={userData} setActiveTab={setActiveTab} />;
       case 'explorar':
         return (
-          <RouteExplorer 
-            routes={availableRoutes} 
-            loading={loadingRoutes} 
+          <RouteExplorer
+            routes={availableRoutes}
+            loading={loadingRoutes}
             onSelectRoute={(route) => {
               setSelectedRoute(route);
               setRouteViewMode('teoria');
               setActiveTab('detalle-ruta');
               setContextoEvaluacion("");
-            }} 
+            }}
           />
         );
       case 'mis-rutas':
         return (
-          <RoutesViewer 
+          <RoutesViewer
             setActiveTab={setActiveTab}
             onSelectRoute={(route) => {
               setSelectedRoute(route);
               setRouteViewMode('teoria');
               setActiveTab('detalle-ruta');
               setContextoEvaluacion("");
-            }} 
+            }}
           />
         );
       case 'perfil':
@@ -161,8 +171,8 @@ const StudentDashboard = () => {
         return <RouteGenerator onBack={() => setActiveTab('mis-rutas')} />;
       case 'detalle-ruta':
         return (
-          <RouteDetails 
-            route={selectedRoute} 
+          <RouteDetails
+            route={selectedRoute}
             viewMode={routeViewMode}
             setViewMode={setRouteViewMode}
             onBack={() => setActiveTab('explorar')}
@@ -192,7 +202,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex transition-colors duration-300">
-      
+
       <StudentSidebar activeTab={activeTab} setActiveTab={setActiveTab} userData={userData} toggleTheme={toggleTheme} onLogout={handleLogout} />
 
       <div className="flex-grow flex flex-col min-w-0 relative">
@@ -213,10 +223,12 @@ const StudentDashboard = () => {
         onCodeEvaluated={() => setCodeToEvaluate(null)}
       />
 
+      <LiveSupportChat userData={userData} />
+
       {!showChat && (
         <button
           onClick={() => {
-            setActiveModuleForChat(null); 
+            setActiveModuleForChat(null);
             setShowChat(true);
           }}
           className="fixed bottom-8 right-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-full shadow-2xl shadow-slate-900/50 hover:scale-110 transition-transform z-50 flex items-center justify-center group"

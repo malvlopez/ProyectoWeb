@@ -1,18 +1,36 @@
 import { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useFetch } from "../../hooks/useFetch";
 import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 import AuthContext from "../../context/AuthProvider";
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "El correo es obligatorio")
+    .email("Correo electrónico inválido")
+    .refine((val) => val.endsWith("@epn.edu.ec"), {
+      message: "Usa tu correo institucional (@epn.edu.ec)",
+    }),
+  password: z
+    .string()
+    .min(1, "La contraseña es obligatoria"),
+});
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   
   const { fetchDataBackend, loading } = useFetch();
-  const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const { loginAuth } = useContext(AuthContext);
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(loginSchema)
+  });
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -88,9 +106,7 @@ const Login = () => {
               type="email" 
               placeholder="andres.caiza@epn.edu.ec"
               className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-              {...register("email", { 
-                required: "El correo es obligatorio"
-              })}
+              {...register("email")}
             />
             {errors.email && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.email.message}</p>}
           </div>
@@ -105,9 +121,7 @@ const Login = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("password", { 
-                  required: "La contraseña es obligatoria"
-                })}
+                {...register("password")}
               />
               <button
                 type="button"

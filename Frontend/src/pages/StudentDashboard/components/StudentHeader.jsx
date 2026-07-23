@@ -16,8 +16,12 @@ const StudentHeader = ({ userData, setActiveTab }) => {
               <div className="text-sm font-bold text-slate-800 dark:text-white">{userData.name}</div>
               <div className="text-xs font-semibold text-violet-600 dark:text-violet-400">Estudiante</div>
             </div>
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-violet-500/20 border-2 border-white dark:border-slate-800">
-              {userData.initials}
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-violet-500/20 border-2 border-white dark:border-slate-800 overflow-hidden">
+              {userData.profilePicture ? (
+                <img src={userData.profilePicture} alt="Perfil" className="w-full h-full object-cover" />
+              ) : (
+                userData.initials
+              )}
             </div>
           </button>
           {showProfileMenu && (

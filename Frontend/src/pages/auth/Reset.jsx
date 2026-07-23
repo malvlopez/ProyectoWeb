@@ -2,18 +2,33 @@ import { useState, useEffect } from "react";
 import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useFetch } from "../../hooks/useFetch";
+
+const resetSchema = z.object({
+  newPassword: z
+    .string()
+    .min(8, "La contraseña debe tener mínimo 8 caracteres"),
+  confirmPassword: z
+    .string()
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"]
+});
 
 const Reset = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  
   const { token } = useParams();
   const navigate = useNavigate();
   const { fetchDataBackend, loading } = useFetch();
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
-  const newPasswordValue = watch("newPassword");
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(resetSchema)
+  });
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -30,7 +45,7 @@ const Reset = () => {
 
   const updatePassword = async (dataForm) => {
     const payload = { newPassword: dataForm.newPassword };
-    await fetchDataBackend(`/auth/reset-password/${token}`, payload, "POST");
+    await fetchDataBackend(`/auth/reset-password/${token}`, payload, "PATCH");
     
     setTimeout(() => {
       navigate("/login");
@@ -81,13 +96,7 @@ const Reset = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="Mínimo 8 caracteres"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.newPassword ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("newPassword", { 
-                  required: "La nueva contraseña es obligatoria",
-                  minLength: {
-                    value: 8,
-                    message: "La contraseña debe tener mínimo 8 caracteres"
-                  }
-                })}
+                {...register("newPassword")}
               />
               <button
                 type="button"
@@ -107,10 +116,7 @@ const Reset = () => {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Repite la contraseña"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("confirmPassword", { 
-                  required: "Debes confirmar tu contraseña",
-                  validate: value => value === newPasswordValue || "Las contraseñas no coinciden"
-                })}
+                {...register("confirmPassword")}
               />
               <button
                 type="button"

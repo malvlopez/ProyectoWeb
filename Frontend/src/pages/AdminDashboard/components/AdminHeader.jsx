@@ -16,8 +16,12 @@ const AdminHeader = ({ userData, setActiveTab }) => {
               <div className="text-sm font-bold text-slate-800 dark:text-white">{userData.name}</div>
               <div className="text-xs font-semibold text-slate-500">Administrador</div>
             </div>
-            <div className="w-11 h-11 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold shadow-md border-2 border-slate-200 dark:border-slate-800">
-              {userData.initials}
+            <div className="w-11 h-11 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold shadow-md border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
+              {userData.profilePicture ? (
+                <img src={userData.profilePicture} alt="Perfil Admin" className="w-full h-full object-cover" />
+              ) : (
+                userData.initials
+              )}
             </div>
           </button>
           {showProfileMenu && (

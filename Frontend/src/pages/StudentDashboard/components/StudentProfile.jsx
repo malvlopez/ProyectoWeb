@@ -27,8 +27,9 @@ const StudentProfile = ({ userData, onPhotoUpdate }) => {
 
     try {
       const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
       
-      const response = await fetch('http://localhost:3000/api/upload/profile', {
+      const response = await fetch(`${apiUrl}/upload/profile`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

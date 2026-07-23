@@ -13,6 +13,8 @@ import AdminHeader from './components/AdminHeader';
 import AdminHome from './components/AdminHome';
 import AdminProfile from './components/AdminProfile';
 
+import LiveSupportChat from '../../shared/LiveSupportChat';
+
 const AdminDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [activeTab, setActiveTab] = useState('inicio');
@@ -56,6 +58,18 @@ const AdminDashboard = () => {
     loadProfile();
   }, []);
 
+  const handleUpdateUserPhoto = (newPhotoUrl) => {
+    setUserData(prev => ({ ...prev, profilePicture: newPhotoUrl }));
+    
+    const storageUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storageUser) {
+      const parsedUser = JSON.parse(storageUser);
+      parsedUser.profilePicture = newPhotoUrl;
+      const storageType = localStorage.getItem('user') ? localStorage : sessionStorage;
+      storageType.setItem('user', JSON.stringify(parsedUser));
+    }
+  };
+
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
@@ -73,7 +87,7 @@ const AdminDashboard = () => {
       case 'rutas': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RoutesManager /></div>;
       case 'constructor': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RouteBuilder /></div>;
       case 'roles': return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><RoleManager /></div>;
-      case 'perfil': return <AdminProfile userData={userData} />;
+      case 'perfil': return <AdminProfile userData={userData} onPhotoUpdate={handleUpdateUserPhoto} />;
       default: return <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800"><h2 className="text-2xl font-bold mb-4">Vista Activa: {activeTab}</h2><p>Módulo en construcción...</p></div>;
     }
   };
@@ -95,6 +109,9 @@ const AdminDashboard = () => {
           {renderContent()}
         </main>
       </div>
+
+      {/* Aquí insertas el Chat en Vivo para el Administrador */}
+      <LiveSupportChat userData={userData} />
     </div>
   );
 };

@@ -1,16 +1,47 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useFetch } from "../../hooks/useFetch";
 import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 
+const registerSchema = z.object({
+  cedula: z
+    .string()
+    .length(10, "La cédula debe tener exactamente 10 dígitos")
+    .regex(/^[0-9]+$/, "Solo se permiten números"),
+  firstName: z
+    .string()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, "Solo se permiten letras"),
+  lastName: z
+    .string()
+    .min(2, "El apellido debe tener al menos 2 caracteres")
+    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, "Solo se permiten letras"),
+  email: z
+    .string()
+    .min(1, "El correo es obligatorio")
+    .email("Correo electrónico inválido")
+    .refine((val) => val.endsWith("@epn.edu.ec"), {
+      message: "Usa tu correo institucional (@epn.edu.ec)",
+    }),
+  password: z
+    .string()
+    .min(8, "Mínimo 8 caracteres"),
+});
+
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   
   const { fetchDataBackend, loading } = useFetch();
-  const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(registerSchema)
+  });
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -26,14 +57,29 @@ const Register = () => {
   };
 
   const onSubmit = async (dataForm) => {
-    const formattedData = {
-      name: `${dataForm.firstName} ${dataForm.lastName}`.trim(),
-      email: dataForm.email,
-      password: dataForm.password
-    };
+    setApiError(null);
+    try {
+      const ecuadorApiResponse = await fetch(`https://api.ecuadorapi.com/v1/person?id=${dataForm.cedula}`);
+      
+      if (!ecuadorApiResponse.ok) {
+        setApiError("La cédula ingresada no existe o no es válida en el Registro Civil.");
+        return;
+      }
 
-    await fetchDataBackend("/auth/register", formattedData, "POST");
-    navigate("/login");
+      const formattedData = {
+        cedula: dataForm.cedula,
+        name: `${dataForm.firstName} ${dataForm.lastName}`.trim(),
+        email: dataForm.email,
+        password: dataForm.password
+      };
+
+      const res = await fetchDataBackend("/auth/register", formattedData, "POST");
+      if (res && !res.error) {
+        navigate("/login");
+      }
+    } catch (error) {
+      setApiError("Error de conexión con EcuadorAPI. Intenta nuevamente.");
+    }
   };
 
   return (
@@ -72,7 +118,26 @@ const Register = () => {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Organiza tu malla curricular y asegura tu avance en la EPN.</p>
         </div>
 
+        {apiError && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium text-center">
+            {apiError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Cédula de Identidad</label>
+            <input 
+              type="text" 
+              placeholder="17xxxxxxxx"
+              maxLength="10"
+              className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.cedula ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
+              {...register("cedula")}
+            />
+            {errors.cedula && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.cedula.message}</p>}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nombres</label>
@@ -80,13 +145,7 @@ const Register = () => {
                 type="text" 
                 placeholder="Ej. Andrés Josué"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.firstName ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("firstName", { 
-                  required: "El nombre es obligatorio",
-                  pattern: {
-                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
-                    message: "Solo se permiten letras"
-                  }
-                })}
+                {...register("firstName")}
               />
               {errors.firstName && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.firstName.message}</p>}
             </div>
@@ -97,13 +156,7 @@ const Register = () => {
                 type="text" 
                 placeholder="Ej. Caiza Pilco"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.lastName ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("lastName", { 
-                  required: "El apellido es obligatorio",
-                  pattern: {
-                    value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
-                    message: "Solo se permiten letras"
-                  }
-                })}
+                {...register("lastName")}
               />
               {errors.lastName && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.lastName.message}</p>}
             </div>
@@ -115,13 +168,7 @@ const Register = () => {
               type="email" 
               placeholder="andres.caiza@epn.edu.ec"
               className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-              {...register("email", { 
-                required: "El correo es obligatorio",
-                pattern: {
-                  value: /^[a-zA-Z0-9._%+-]+@epn\.edu\.ec$/,
-                  message: "Usa tu correo institucional (@epn.edu.ec)"
-                }
-              })}
+              {...register("email")}
             />
             {errors.email && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 font-medium">{errors.email.message}</p>}
           </div>
@@ -133,10 +180,7 @@ const Register = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="Mínimo 8 caracteres"
                 className={`w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-600'} text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all placeholder-slate-400`}
-                {...register("password", { 
-                  required: "La contraseña es obligatoria",
-                  minLength: { value: 8, message: "Mínimo 8 caracteres" }
-                })}
+                {...register("password")}
               />
               <button
                 type="button"
@@ -150,7 +194,7 @@ const Register = () => {
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed py-2">
-            Al registrarte, aceptas que el sistema procesará tus datos académicos para generar rutas de aprendizaje personalizadas.
+            Al registrarte, aceptas que el sistema validará tu identidad mediante el Registro Civil y procesará tus datos académicos.
           </p>
 
           <button 
@@ -158,7 +202,7 @@ const Register = () => {
             disabled={loading}
             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-violet-500/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2 mt-4"
           >
-            {loading ? "Creando cuenta..." : "Registrarse ahora"}
+            {loading ? "Validando identidad..." : "Registrarse ahora"}
             {!loading && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>}
           </button>
         </form>

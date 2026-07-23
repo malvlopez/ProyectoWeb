@@ -8,9 +8,12 @@ const DashboardHome = ({ userData, setActiveTab }) => {
     const fetchRecentRoutes = async () => {
       try {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/routes/my-routes', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        
+        const response = await fetch(`${apiUrl}/routes/my-routes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        
         if (response.ok) {
           const data = await response.json();
           setActiveRoutes(data.slice(0, 2));

@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react';
-import { useFetch } from '../../../hooks/useFetch';
+import { getUsers } from '../../../api/admin.api';
+import { getRoutes } from '../../../api/route.api';
 
 const AdminHome = () => {
   const [stats, setStats] = useState({ users: 0, routes: 0 });
-  const { fetchDataBackend } = useFetch();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [usersRes, routesRes] = await Promise.all([
-          fetchDataBackend('/users', null, 'GET', {}, false),
-          fetchDataBackend('/routes', null, 'GET', {}, false)
-        ]);
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         
+        const usersPromise = getUsers(token).catch(() => []);
+        const routesPromise = getRoutes().catch(() => []);
+
+        const [usersData, routesData] = await Promise.all([usersPromise, routesPromise]);
+        
+        const totalStudents = Array.isArray(usersData) 
+          ? usersData.filter(user => user.roles && user.roles.includes('STUDENT')).length 
+          : 0;
+
+        const finalUsersCount = totalStudents > 0 ? totalStudents : (Array.isArray(usersData) ? usersData.length : 0);
+
         setStats({
-          users: usersRes && !usersRes.error ? usersRes.length : 0,
-          routes: routesRes && !routesRes.error ? routesRes.length : 0
+          users: finalUsersCount,
+          routes: Array.isArray(routesData) ? routesData.length : 0
         });
       } catch (error) {
         console.error("Error cargando estadísticas", error);

@@ -1,28 +1,34 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { getResources } from '../../../api/resource.api';
 import { createRoute } from '../../../api/route.api';
 
+const routeSchema = z.object({
+  title: z.string().min(5, "El título debe tener al menos 5 caracteres"),
+  description: z.string().min(10, "Añade una descripción más detallada"),
+  category: z.string().min(1, "Selecciona o escribe una categoría"),
+  estimatedTime: z.coerce.number().min(1, "El tiempo es obligatorio"),
+  difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
+  evaluationRules: z.string().optional()
+});
+
 const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
   const isEditing = !!initialData;
-
-  const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    category: initialData?.category || '',
-    estimatedTime: initialData?.estimatedTime || '',
-    difficulty: initialData?.difficulty || 'BEGINNER',
-    evaluationRules: initialData?.evaluationRules || '',
-    modules: initialData?.modules?.map(mod => ({
+  const [loading, setLoading] = useState(false);
+  const [availableResources, setAvailableResources] = useState([]);
+  const [loadingResources, setLoadingResources] = useState(true);
+  
+  const [modules, setModules] = useState(
+    initialData?.modules?.map(mod => ({
       id: mod.id,
       title: mod.title,
       description: mod.description || '',
       resourceIds: mod.resources ? mod.resources.map(r => r.resourceId || r.id) : []
     })) || []
-  });
-
-  const [availableResources, setAvailableResources] = useState([]);
-  const [loadingResources, setLoadingResources] = useState(true);
+  );
 
   const predefinedCategories = [
     "Ingeniería de Software",
@@ -32,6 +38,20 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
     "Sistemas y Arquitectura",
     "Fundamentos y Lógica"
   ];
+
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(routeSchema),
+    defaultValues: {
+      title: initialData?.title || '',
+      description: initialData?.description || '',
+      category: initialData?.category || '',
+      estimatedTime: initialData?.estimatedTime || '',
+      difficulty: initialData?.difficulty || 'BEGINNER',
+      evaluationRules: initialData?.evaluationRules || ''
+    }
+  });
+
+  const selectedCategory = watch('category');
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -48,25 +68,22 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
   }, []);
 
   const addModule = () => {
-    setFormData({
-      ...formData,
-      modules: [...formData.modules, { title: '', description: '', resourceIds: [] }]
-    });
+    setModules([...modules, { title: '', description: '', resourceIds: [] }]);
   };
 
   const updateModule = (index, field, value) => {
-    const updatedModules = [...formData.modules];
+    const updatedModules = [...modules];
     updatedModules[index][field] = value;
-    setFormData({ ...formData, modules: updatedModules });
+    setModules(updatedModules);
   };
 
   const removeModule = (index) => {
-    const updatedModules = formData.modules.filter((_, i) => i !== index);
-    setFormData({ ...formData, modules: updatedModules });
+    const updatedModules = modules.filter((_, i) => i !== index);
+    setModules(updatedModules);
   };
 
   const toggleResource = (moduleIndex, resourceId) => {
-    const currentModule = formData.modules[moduleIndex];
+    const currentModule = modules[moduleIndex];
     const currentIndex = currentModule.resourceIds.indexOf(resourceId);
     const newResourceIds = [...currentModule.resourceIds];
 
@@ -78,10 +95,15 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
     updateModule(moduleIndex, 'resourceIds', newResourceIds);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (dataForm) => {
+    if (modules.length === 0) {
+      return toast.warning('Debes añadir al menos un curso (submódulo) a la ruta.');
+    }
     
+    setLoading(true);
     try {
+      const finalPayload = { ...dataForm, modules };
+
       if (isEditing) {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -91,17 +113,19 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(finalPayload)
         });
         if (!response.ok) throw new Error('Error al actualizar');
       } else {
-        await createRoute(formData);
+        await createRoute(finalPayload);
       }
 
       toast.success(isEditing ? 'Ruta actualizada exitosamente' : 'Ruta creada exitosamente');
       onSaveSuccess();
     } catch (error) {
       toast.error('Hubo un problema al guardar la ruta');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,6 +142,7 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
             </p>
           </div>
           <button 
+            type="button" 
             onClick={onCancel}
             className="px-6 py-2 border border-gray-600 text-gray-300 hover:bg-gray-800 rounded-lg font-medium transition-colors"
           >
@@ -125,7 +150,7 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           
           <div className="bg-[#1e2333] p-8 rounded-2xl border border-gray-800 shadow-lg relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500"></div>
@@ -138,45 +163,43 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
               {predefinedCategories.map((cat, idx) => (
                 <label 
                   key={idx} 
-                  className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.category === cat ? 'border-violet-500 bg-violet-500/10 ring-1 ring-violet-500' : 'border-gray-700 hover:border-violet-400 bg-[#0f172a]'}`}
+                  className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${selectedCategory === cat ? 'border-violet-500 bg-violet-500/10 ring-1 ring-violet-500' : 'border-gray-700 hover:border-violet-400 bg-[#0f172a]'}`}
                 >
                   <input 
                     type="radio" 
-                    name="category"
                     value={cat}
-                    checked={formData.category === cat}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    {...register('category')}
                     className="hidden"
                   />
-                  <span className={`font-semibold text-sm ${formData.category === cat ? 'text-violet-400' : 'text-gray-300'}`}>
+                  <span className={`font-semibold text-sm ${selectedCategory === cat ? 'text-violet-400' : 'text-gray-300'}`}>
                     {cat}
                   </span>
                 </label>
               ))}
               
-              <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${!predefinedCategories.includes(formData.category) && formData.category !== '' ? 'border-violet-500 bg-violet-500/10 ring-1 ring-violet-500' : 'border-gray-700 bg-[#0f172a]'}`}>
+              <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${!predefinedCategories.includes(selectedCategory) && selectedCategory !== '' ? 'border-violet-500 bg-violet-500/10 ring-1 ring-violet-500' : 'border-gray-700 bg-[#0f172a]'}`}>
                 <input 
                   type="radio" 
-                  name="category"
                   value="custom"
-                  checked={!predefinedCategories.includes(formData.category) && formData.category !== ''}
-                  onChange={() => setFormData({...formData, category: 'Nueva Categoría'})}
+                  checked={!predefinedCategories.includes(selectedCategory) && selectedCategory !== ''}
+                  onChange={() => setValue('category', 'Nueva Categoría')}
                   className="hidden"
                 />
                 <input 
                   type="text"
                   placeholder="Otra clasificación..."
-                  value={!predefinedCategories.includes(formData.category) ? formData.category : ''}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  value={!predefinedCategories.includes(selectedCategory) ? selectedCategory : ''}
+                  onChange={(e) => setValue('category', e.target.value)}
                   className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold text-gray-300 placeholder-gray-500 outline-none"
                   onClick={() => {
-                    if(predefinedCategories.includes(formData.category)) {
-                      setFormData({...formData, category: ''})
+                    if(predefinedCategories.includes(selectedCategory)) {
+                      setValue('category', '');
                     }
                   }}
                 />
               </label>
             </div>
+            {errors.category && <p className="text-red-500 text-xs mt-2">{errors.category.message}</p>}
           </div>
 
           <div className="bg-[#1e2333] p-8 rounded-2xl border border-gray-800 shadow-lg relative overflow-hidden">
@@ -192,11 +215,10 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
                 <input 
                   type="text" 
                   placeholder="Ej: Programación Orientada a Objetos"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full bg-[#0f172a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                  required
+                  className={`w-full bg-[#0f172a] border ${errors.title ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
+                  {...register('title')}
                 />
+                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -205,17 +227,16 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
                   <input 
                     type="number" 
                     placeholder="Ej: 144"
-                    value={formData.estimatedTime}
-                    onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})}
-                    className="w-full bg-[#0f172a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    className={`w-full bg-[#0f172a] border ${errors.estimatedTime ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors`}
+                    {...register('estimatedTime')}
                   />
+                  {errors.estimatedTime && <p className="text-red-500 text-xs mt-1">{errors.estimatedTime.message}</p>}
                 </div>
                 <div>
                   <label className="text-sm font-bold text-gray-400 block mb-2">Nivel de Dificultad</label>
                   <select
-                    value={formData.difficulty}
-                    onChange={(e) => setFormData({...formData, difficulty: e.target.value})}
                     className="w-full bg-[#0f172a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    {...register('difficulty')}
                   >
                     <option value="BEGINNER">Principiante (Ej. Semestre 2)</option>
                     <option value="INTERMEDIATE">Intermedio (Ej. Semestre 3-4)</option>
@@ -227,11 +248,10 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
               <div>
                 <label className="text-sm font-bold text-gray-400 block mb-2">Descripción General</label>
                 <textarea 
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full bg-[#0f172a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors h-24 resize-none"
-                  required
+                  className={`w-full bg-[#0f172a] border ${errors.description ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors h-24 resize-none`}
+                  {...register('description')}
                 />
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
               </div>
 
               <div className="bg-emerald-500/5 p-5 rounded-xl border border-emerald-500/20">
@@ -243,9 +263,8 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
                 </p>
                 <textarea 
                   placeholder="Ej: Actúa como un profesor estricto de la EPN..."
-                  value={formData.evaluationRules}
-                  onChange={(e) => setFormData({...formData, evaluationRules: e.target.value})}
                   className="w-full bg-[#0f172a] border border-emerald-500/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors h-28 resize-none"
+                  {...register('evaluationRules')}
                 />
               </div>
             </div>
@@ -272,13 +291,13 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
             </div>
 
             <div className="space-y-4">
-              {formData.modules.length === 0 && (
+              {modules.length === 0 && (
                 <div className="text-center py-8 border-2 border-dashed border-gray-700 rounded-xl">
                   <p className="text-gray-500 text-sm">Aún no has agregado cursos a esta ruta.</p>
                 </div>
               )}
 
-              {formData.modules.map((mod, index) => (
+              {modules.map((mod, index) => (
                 <div key={index} className="bg-[#0f172a] p-5 rounded-xl border border-gray-700 relative group flex gap-4">
                   
                   <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-[#1e2333] rounded-lg border border-gray-700 text-gray-500 font-bold">
@@ -349,9 +368,12 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
           <div className="flex justify-end pt-4">
             <button 
               type="submit"
-              className="px-8 py-4 bg-white text-slate-900 font-bold rounded-xl transition-transform hover:scale-105 shadow-xl shadow-white/10 text-lg"
+              disabled={loading}
+              className={`px-8 py-4 font-bold rounded-xl transition-transform hover:scale-105 shadow-xl text-lg ${
+                loading ? 'bg-gray-700 text-gray-400 cursor-not-allowed shadow-none' : 'bg-white text-slate-900 shadow-white/10'
+              }`}
             >
-              {isEditing ? 'Guardar Cambios' : 'Ensamblar y Guardar Ruta'}
+              {loading ? 'Procesando...' : (isEditing ? 'Guardar Cambios' : 'Ensamblar y Guardar Ruta')}
             </button>
           </div>
         </form>
@@ -360,4 +382,4 @@ const RouteBuilder = ({ initialData, onCancel, onSaveSuccess }) => {
   );
 };
 
-export default RouteBuilder;
+export default RouteBuilder;  
