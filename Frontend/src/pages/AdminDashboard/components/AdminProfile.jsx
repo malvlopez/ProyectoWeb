@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 
 const AdminProfile = ({ userData, onPhotoUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [errorMsj, setErrorMsj] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
@@ -59,6 +61,38 @@ const AdminProfile = ({ userData, onPhotoUpdate }) => {
   const triggerFileInput = () => {
     if (!uploading) {
       fileInputRef.current.click();
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!userData?.email || isResetting) return;
+    setIsResetting(true);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const endpoint = apiUrl.endsWith('/api') 
+        ? `${apiUrl}/auth/forgot-password` 
+        : `${apiUrl}/api/auth/forgot-password`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: userData.email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Se ha enviado un enlace seguro a tu correo para actualizar la contraseña.");
+      } else {
+        toast.error(data.message || data.error || "Error al procesar la solicitud.");
+      }
+    } catch (error) {
+      toast.error("Ocurrió un error de conexión con el servidor.");
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -127,8 +161,19 @@ const AdminProfile = ({ userData, onPhotoUpdate }) => {
             
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4">Seguridad de la Cuenta</h3>
-              <button className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:shadow-lg transition-all active:scale-95">
-                Cambiar Contraseña
+              <button 
+                onClick={handlePasswordReset}
+                disabled={isResetting}
+                className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isResetting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current"></div>
+                    Procesando...
+                  </>
+                ) : (
+                  "Cambiar Contraseña"
+                )}
               </button>
             </div>
           </div>

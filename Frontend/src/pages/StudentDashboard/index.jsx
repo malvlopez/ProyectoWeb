@@ -19,12 +19,14 @@ import LiveSupportChat from '../../shared/LiveSupportChat';
 const StudentDashboard = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [activeTab, setActiveTab] = useState('inicio');
+  const [previousTab, setPreviousTab] = useState('explorar');
   const [routeViewMode, setRouteViewMode] = useState('teoria');
   const [showChat, setShowChat] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const [availableRoutes, setAvailableRoutes] = useState([]);
+  const [enrolledRouteIds, setEnrolledRouteIds] = useState([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [activeModuleForChat, setActiveModuleForChat] = useState(null);
@@ -91,6 +93,26 @@ const StudentDashboard = () => {
   }, []);
 
   useEffect(() => {
+    const fetchMyRoutes = async () => {
+      try {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        const response = await fetch(`${apiUrl}/routes/my-routes`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setEnrolledRouteIds(data.map(r => r.id));
+        }
+      } catch (error) {}
+    };
+
+    if (activeTab === 'explorar' || activeTab === 'mis-rutas' || activeTab === 'inicio') {
+      fetchMyRoutes();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     localStorage.setItem('retoActualIA', typeof contextoEvaluacion === 'object' ? JSON.stringify(contextoEvaluacion) : contextoEvaluacion);
   }, [contextoEvaluacion]);
 
@@ -147,6 +169,7 @@ const StudentDashboard = () => {
             loading={loadingRoutes}
             onSelectRoute={(route) => {
               setSelectedRoute(route);
+              setPreviousTab('explorar');
               setRouteViewMode('teoria');
               setActiveTab('detalle-ruta');
               setContextoEvaluacion("");
@@ -159,6 +182,7 @@ const StudentDashboard = () => {
             setActiveTab={setActiveTab}
             onSelectRoute={(route) => {
               setSelectedRoute(route);
+              setPreviousTab('mis-rutas');
               setRouteViewMode('teoria');
               setActiveTab('detalle-ruta');
               setContextoEvaluacion("");
@@ -175,11 +199,12 @@ const StudentDashboard = () => {
             route={selectedRoute}
             viewMode={routeViewMode}
             setViewMode={setRouteViewMode}
-            onBack={() => setActiveTab('explorar')}
+            onBack={() => setActiveTab(previousTab)}
             contextoEvaluacion={contextoEvaluacion}
             setContextoEvaluacion={setContextoEvaluacion}
             onSendToAI={handleSendCodeToAI}
             onOpenChat={handleOpenChat}
+            isAlreadyEnrolled={enrolledRouteIds.includes(selectedRoute?.id)}
           />
         );
       default:
@@ -194,20 +219,20 @@ const StudentDashboard = () => {
 
   if (loadingProfile || !userData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex transition-colors duration-300">
+    <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-300">
 
       <StudentSidebar activeTab={activeTab} setActiveTab={setActiveTab} userData={userData} toggleTheme={toggleTheme} onLogout={handleLogout} />
 
-      <div className="flex-grow flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative overflow-hidden">
         <StudentHeader userData={userData} setActiveTab={setActiveTab} />
-        <main className="flex-grow p-6 md:p-10 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto">
           {renderContent()}
         </main>
       </div>

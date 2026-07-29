@@ -4,22 +4,23 @@ import { toast } from 'react-toastify';
 import CodeWorkspace from './CodeWorkspace';
 import AIAssessmentForm from './AIAssessmentForm';
 
-const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion, setContextoEvaluacion, onSendToAI, onOpenChat }) => {
+const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion, setContextoEvaluacion, onSendToAI, onOpenChat, isAlreadyEnrolled }) => {
   const [expandedModule, setExpandedModule] = useState(null);
   const [assessmentData, setAssessmentData] = useState(null);
   const [assessingModuleId, setAssessingModuleId] = useState(null);
+  const [assessmentType, setAssessmentType] = useState(null);
   const [isGeneratingAssessment, setIsGeneratingAssessment] = useState(false);
   const [loadingType, setLoadingType] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
 
   useEffect(() => {
-    if (route?.enrollments && route.enrollments.length > 0) {
+    if (isAlreadyEnrolled || (route?.enrollments && route.enrollments.length > 0)) {
       setIsEnrolled(true);
     } else {
       setIsEnrolled(false);
     }
-  }, [route]);
+  }, [route, isAlreadyEnrolled]);
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -98,6 +99,7 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
     setAssessingModuleId(moduleId);
     
     setAssessmentData(null);
+    setAssessmentType(null);
     if (setContextoEvaluacion) {
       setContextoEvaluacion("");
     }
@@ -131,6 +133,7 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
       
       if (type === 'teoria') {
         setAssessmentData(data);
+        setAssessmentType(type);
         setViewMode('teoria');
         toast.success('¡Cuestionario de práctica generado!');
       } else if (type === 'practica') {
@@ -139,6 +142,7 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
         toast.success('¡Reto práctico generado!');
       } else if (type === 'completa') {
         setAssessmentData(data);
+        setAssessmentType(type);
         if (setContextoEvaluacion) setContextoEvaluacion(data.practicalChallenge);
         setViewMode('teoria');
         toast.success('¡Reto Final y Cuestionario generados con éxito!');
@@ -146,6 +150,7 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
 
     } catch (error) {
       setAssessingModuleId(null);
+      setAssessmentType(null);
       if (error.message === '429') {
         toast.warning('La IA está procesando demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.');
       } else {
@@ -157,6 +162,12 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
     }
   };
 
+  const closeAssessment = () => {
+    setAssessmentData(null);
+    setAssessingModuleId(null);
+    setAssessmentType(null);
+  };
+
   const isMultiTask = typeof contextoEvaluacion === 'object' && contextoEvaluacion?.tasks;
 
   return (
@@ -166,7 +177,7 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
         className="flex items-center gap-2 text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 font-semibold transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Volver a Explorar Rutas
+        Regresar al listado de rutas
       </button>
 
       <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
@@ -227,14 +238,35 @@ const RouteDetail = ({ route, viewMode, setViewMode, onBack, contextoEvaluacion,
         {viewMode === 'teoria' ? (
           <div className="space-y-4">
             {assessmentData ? (
-              <AIAssessmentForm 
-                assessmentData={assessmentData} 
-                moduleId={assessingModuleId}
-                onRetake={() => {
-                  setAssessmentData(null);
-                  setAssessingModuleId(null);
-                }} 
-              />
+              <div className="animate-in fade-in duration-300">
+                <div className="mb-6 flex justify-between items-center bg-[#1e2333] p-4 rounded-xl border border-slate-800 shadow-md">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{assessmentType === 'completa' ? '⚡' : '📝'}</span>
+                    <div>
+                      <h3 className="text-white font-bold">
+                        {assessmentType === 'completa' ? 'Reto Final Oficial' : 'Cuestionario de Práctica'}
+                      </h3>
+                      <p className="text-slate-400 text-xs">
+                        {assessmentType === 'completa' ? 'Requiere 70% para aprobar.' : 'Práctica libre sin calificación mínima.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeAssessment}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors border border-slate-700"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Volver al módulo
+                  </button>
+                </div>
+
+                <AIAssessmentForm 
+                  assessmentData={assessmentData} 
+                  moduleId={assessingModuleId}
+                  assessmentType={assessmentType}
+                  onRetake={closeAssessment} 
+                />
+              </div>
             ) : (
               (!route.modules || route.modules.length === 0) ? (
                 <div className="bg-[#1e2333] border border-gray-800 rounded-2xl p-8 text-center">

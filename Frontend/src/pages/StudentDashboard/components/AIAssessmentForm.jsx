@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 
-const AIAssessmentForm = ({ assessmentData, onRetake, moduleId, onAssessmentComplete }) => {
+const AIAssessmentForm = ({ assessmentData, onRetake, moduleId, onAssessmentComplete, assessmentType }) => {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
@@ -27,6 +27,12 @@ const AIAssessmentForm = ({ assessmentData, onRetake, moduleId, onAssessmentComp
 
     const percentage = Math.round((currentScore / assessmentData.questions.length) * 100);
     const isPassed = percentage >= 70;
+
+    if (assessmentType !== 'completa') {
+      toast.success(`Práctica completada. Tu desempeño fue del ${percentage}%.`);
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const token = sessionStorage.getItem('token') || localStorage.getItem('token');
@@ -162,7 +168,7 @@ const AIAssessmentForm = ({ assessmentData, onRetake, moduleId, onAssessmentComp
             onClick={onRetake}
             className="px-6 py-3 bg-[#1e2333] hover:bg-[#252b3e] text-white border border-gray-700 rounded-xl font-bold transition-colors"
           >
-            Nueva Prueba
+            Cerrar Prueba
           </button>
         ) : (
           <button

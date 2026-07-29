@@ -28,7 +28,6 @@ const RouteGenerator = ({ onBack }) => {
   const handleGenerate = async (e) => {
     e.preventDefault();
     
-    // Validación estricta: Obligatorio tener tema y al menos un recurso (texto/enlace o archivo)
     if (!topic.trim()) return;
     if (!additionalContext.trim() && !referenceFile) {
       setError("Obligatorio: Debes proporcionar al menos un enlace base o subir un documento de referencia para que la IA pueda construir los recursos de la ruta.");
@@ -40,6 +39,7 @@ const RouteGenerator = ({ onBack }) => {
 
     try {
       const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
       
       const formData = new FormData();
       formData.append('topic', topic);
@@ -49,7 +49,7 @@ const RouteGenerator = ({ onBack }) => {
         formData.append('file', referenceFile);
       }
 
-      const response = await fetch('http://localhost:3000/api/routes/generate', {
+      const response = await fetch(`${apiUrl}/routes/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

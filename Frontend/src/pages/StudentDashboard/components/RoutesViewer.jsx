@@ -8,7 +8,9 @@ const RoutesViewer = ({ onSelectRoute, setActiveTab }) => {
     const fetchRutas = async () => {
       try {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/routes/my-routes', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        
+        const response = await fetch(`${apiUrl}/routes/my-routes`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

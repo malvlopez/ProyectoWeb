@@ -1,6 +1,6 @@
 const AdminSidebar = ({ activeTab, setActiveTab, toggleTheme, onLogout }) => {
   return (
-    <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col justify-between p-6 z-10">
+    <aside className="w-64 min-w-[16rem] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col justify-between p-6 z-10 flex-shrink-0">
       <div className="space-y-8">
         <div className="flex items-center gap-3">
           <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-2 rounded-xl font-black text-lg tracking-tighter">

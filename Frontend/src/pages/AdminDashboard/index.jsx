@@ -94,23 +94,21 @@ const AdminDashboard = () => {
 
   if (loadingProfile || !userData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex transition-colors duration-300">
+    <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-300">
       <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} toggleTheme={toggleTheme} onLogout={handleLogout} />
-      <div className="flex-grow flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative overflow-hidden">
         <AdminHeader userData={userData} setActiveTab={setActiveTab} />
-        <main className="flex-grow p-6 md:p-10 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto">
           {renderContent()}
         </main>
       </div>
-
-      {/* Aquí insertas el Chat en Vivo para el Administrador */}
       <LiveSupportChat userData={userData} />
     </div>
   );

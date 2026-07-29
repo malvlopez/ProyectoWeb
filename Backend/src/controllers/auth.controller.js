@@ -2,6 +2,7 @@ import prisma from '../prisma.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import https from 'https';
 import { registerUser } from '../services/auth.service.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service.js';
 
@@ -221,5 +222,81 @@ export const getProfile = async (req, res) => {
   } catch (error) {
     console.error("Error en getProfile:", error);
     res.status(500).json({ error: "Error al obtener el perfil" });
+  }
+};
+
+const validateEcuadorianCedula = (cedula) => {
+  if (!/^\d{10}$/.test(cedula)) return false;
+  const province = parseInt(cedula.substring(0, 2), 10);
+  if (province < 1 || (province > 24 && province !== 30)) return false;
+  const thirdDigit = parseInt(cedula[2], 10);
+  if (thirdDigit >= 6) return false;
+
+  const coefficients = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let prod = parseInt(cedula[i], 10) * coefficients[i];
+    if (prod >= 10) prod -= 9;
+    sum += prod;
+  }
+
+  const verifier = parseInt(cedula[9], 10);
+  let calculated = sum % 10 === 0 ? 0 : 10 - (sum % 10);
+  return calculated === verifier;
+};
+
+export const checkCedula = async (req, res) => {
+  const { cedula } = req.params;
+
+  if (!validateEcuadorianCedula(cedula)) {
+    return res.status(200).json({
+      status: { http_code: 404 },
+      message: "Cédula inválida por estructura matemática"
+    });
+  }
+
+  try {
+    const apiKey = process.env.ECUADOR_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: "API Key no configurada en el servidor" });
+    }
+
+    const response = await fetch(`https://api.ecuadorapi.com/api/v1/cedulas/${cedula}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const errorText = await response.text();
+      console.error("EcuadorAPI no devolvió JSON. Respuesta:", errorText);
+      return res.status(500).json({ error: "EcuadorAPI devolvió un formato incorrecto." });
+    }
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      return res.status(200).json({
+        status: { http_code: 404 },
+        error: data.error || "No se pudo obtener la información"
+      });
+    }
+
+    const fullName = data.data?.full_name || data.full_name || data.name || data.nombre || "";
+
+    return res.status(200).json({
+      ...data,
+      name: fullName
+    });
+    
+  } catch (error) {
+    console.error("Error crítico en checkCedula:", error);
+    return res.status(500).json({ 
+      error: "Error interno al comunicarse con el Registro Civil" 
+    });
   }
 };
